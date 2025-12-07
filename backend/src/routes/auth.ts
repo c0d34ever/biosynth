@@ -73,6 +73,7 @@ router.post('/register', async (req, res: Response) => {
 // Login
 router.post('/login', async (req, res: Response) => {
   try {
+    console.log('[Auth] Login attempt:', { email: req.body.email, timestamp: new Date().toISOString() });
     const data = loginSchema.parse(req.body);
     const pool = getPool();
 
@@ -82,6 +83,7 @@ router.post('/login', async (req, res: Response) => {
     ) as any[];
 
     if (users.length === 0) {
+      console.log('[Auth] Login failed: User not found', { email: data.email });
       res.status(401).json({ 
         error: 'Invalid credentials',
         message: 'No user found with this email. Please register first or check your email.'
@@ -93,6 +95,7 @@ router.post('/login', async (req, res: Response) => {
     
     // Check if password_hash exists (shouldn't happen, but safety check)
     if (!user.password_hash) {
+      console.log('[Auth] Login failed: Missing password hash', { email: data.email, userId: user.id });
       res.status(401).json({ 
         error: 'Invalid credentials',
         message: 'User account is corrupted. Please contact administrator.'
@@ -103,6 +106,7 @@ router.post('/login', async (req, res: Response) => {
     const isValid = await bcrypt.compare(data.password, user.password_hash);
 
     if (!isValid) {
+      console.log('[Auth] Login failed: Invalid password', { email: data.email, userId: user.id });
       res.status(401).json({ 
         error: 'Invalid credentials',
         message: 'Incorrect password. Please try again.'
@@ -111,6 +115,7 @@ router.post('/login', async (req, res: Response) => {
     }
 
     const token = generateToken(user.id, user.role);
+    console.log('[Auth] Login successful', { email: data.email, userId: user.id, role: user.role });
 
     res.json({
       token,
@@ -122,6 +127,7 @@ router.post('/login', async (req, res: Response) => {
       }
     });
   } catch (error) {
+    console.error('[Auth] Login error:', error);
     if (error instanceof z.ZodError) {
       res.status(400).json({ error: 'Invalid input', details: error.errors });
       return;
