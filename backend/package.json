@@ -9,6 +9,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "migrate": "tsx src/db/migrate.ts",
+    "migrate-gemini-key": "tsx src/db/migrate-add-gemini-key.ts",
     "seed": "tsx src/db/seed.ts",
     "create-user": "tsx src/db/create-user.ts",
     "check-users": "tsx src/db/check-users.ts"

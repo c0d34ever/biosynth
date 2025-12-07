@@ -18,14 +18,27 @@ export const createTables = async (pool: mysql.Pool): Promise<void> => {
   `);
   
   // Add gemini_api_key column if it doesn't exist (for existing databases)
+  // MySQL doesn't support IF NOT EXISTS for ALTER TABLE, so we check first
   try {
-    await pool.query(`
-      ALTER TABLE users 
-      ADD COLUMN IF NOT EXISTS gemini_api_key VARCHAR(500) NULL
-    `);
+    const [columns] = await pool.query(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'users' 
+      AND COLUMN_NAME = 'gemini_api_key'
+    `) as any[];
+    
+    if (columns.length === 0) {
+      await pool.query(`
+        ALTER TABLE users 
+        ADD COLUMN gemini_api_key VARCHAR(500) NULL
+      `);
+      console.log('[Schema] Added gemini_api_key column to users table');
+    }
   } catch (error: any) {
-    // Column might already exist, ignore error
-    if (!error.message.includes('Duplicate column')) {
+    if (error.code === 'ER_DUP_FIELDNAME') {
+      // Column already exists, ignore
+    } else {
       console.warn('[Schema] Could not add gemini_api_key column:', error.message);
     }
   }
