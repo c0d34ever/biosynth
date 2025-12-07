@@ -16,6 +16,8 @@ COPY src ./src
 
 # Build
 RUN npm run build
+RUN ls -la dist/ || (echo "ERROR: Build failed - dist directory not found!" && ls -la /app && exit 1)
+RUN test -f dist/index.js || (echo "ERROR: dist/index.js not found!" && ls -la dist/ && exit 1)
 
 # Expose port
 EXPOSE 3001
