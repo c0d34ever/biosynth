@@ -90,7 +90,8 @@ export const codeAnalysisService = {
       generation.code,
       generation.language,
       algorithm,
-      executionResults
+      executionResults,
+      userId
     );
 
     // Generate fixes if requested
@@ -98,7 +99,8 @@ export const codeAnalysisService = {
       const fixedCode = await this._generateFixes(
         generation.code,
         generation.language,
-        analysis.issues
+        analysis.issues,
+        userId
       );
       
       // Update code generation with fixed code
@@ -138,7 +140,8 @@ export const codeAnalysisService = {
     code: string,
     language: string,
     algorithm: any,
-    executionResults: any
+    executionResults: any,
+    userId: number
   ): Promise<CodeAnalysisResult> {
     const prompt = this._buildAnalysisPrompt(code, language, algorithm, executionResults);
     const client = await getAIClient(userId);
@@ -207,7 +210,8 @@ export const codeAnalysisService = {
   async _generateFixes(
     code: string,
     language: string,
-    issues: CodeIssue[]
+    issues: CodeIssue[],
+    userId: number
   ): Promise<string> {
     const criticalIssues = issues.filter(i => 
       i.severity === 'critical' || i.severity === 'high'
