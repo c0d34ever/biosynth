@@ -3,7 +3,7 @@ import { processGenerateJob, processSynthesizeJob, processAnalyzeJob } from './a
 import { AUTOMATION_CONFIG, SYSTEM_USER } from '../constants.js';
 import bcrypt from 'bcryptjs';
 import { Type } from "@google/genai";
-import { getAIClient as getPackageAIClient } from './geminiService.js';
+import { getAIClient } from './geminiService.js';
 
 // Internal method - Get or create system user
 async function _getSystemUser(): Promise<number> {
@@ -56,8 +56,8 @@ async function _generateProblemIdea(systemUserId: number): Promise<{ domain: str
   if (userProblems.length > 0 && Math.random() > 0.3) { // 70% chance to use user problem
     const selectedProblem = userProblems[Math.floor(Math.random() * userProblems.length)];
     
-    // Use AI to suggest a bio-inspiration for this problem
-    const ai = await getPackageAIClient(); // System user, no userId
+        // Use AI to suggest a bio-inspiration for this problem
+        const ai = await getAIClient(systemUserId); // System user
     const prompt = `
       Given this problem: "${selectedProblem.title}" - ${selectedProblem.description}
       Domain: ${selectedProblem.domain || 'General'}
@@ -109,7 +109,7 @@ async function _generateProblemIdea(systemUserId: number): Promise<{ domain: str
   }
   
   // Otherwise, use AI to generate a completely new problem idea
-  const ai = await getPackageAIClient(); // System user, no userId
+  const ai = await getAIClient(systemUserId); // System user
   const prompt = `
     Generate a diverse, real-world problem that needs solving. Consider problems from:
     - Technology and Computing

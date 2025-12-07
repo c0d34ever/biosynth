@@ -190,8 +190,10 @@ export const extractErrorMessage = (error: any): string => {
 
 /**
  * Default model configuration
+ * Using gemini-2.5-flash for better free tier support and higher rate limits
+ * gemini-3-pro-preview has 0 requests/day on free tier
  */
-export const DEFAULT_MODEL = 'gemini-3-pro-preview';
+export const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 /**
  * Generate content with error handling wrapper
