@@ -3,7 +3,7 @@ import { processGenerateJob, processSynthesizeJob, processAnalyzeJob } from './a
 import { AUTOMATION_CONFIG, SYSTEM_USER } from '../constants.js';
 import bcrypt from 'bcryptjs';
 import { Type } from "@google/genai";
-import { getAIClient as getPackageAIClient } from '../../gemini-service-package/src/geminiService.js';
+import { getAIClient as getPackageAIClient } from './geminiService.js';
 
 // Internal method - Get or create system user
 async function _getSystemUser(): Promise<number> {

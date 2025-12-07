@@ -9,7 +9,8 @@ DB_PASSWORD=your-secure-password
 DB_NAME=biosynth
 JWT_SECRET=$(openssl rand -base64 32)
 GEMINI_API_KEY=your-gemini-api-key
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=https://biosynth.youtilitybox.com
+VITE_API_URL=https://biosynth.youtilitybox.com/api
 EOF
 
 # 2. Start everything
@@ -22,6 +23,8 @@ docker exec -it biosynth-backend npm run migrate
 # Frontend: http://localhost:5173
 # Backend: http://localhost:3001
 ```
+
+**📖 For complete Docker commands reference, see [DOCKER_COMMANDS.md](./DOCKER_COMMANDS.md)**
 
 ## 📦 Manual Deployment (3 Steps)
 

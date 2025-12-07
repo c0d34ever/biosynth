@@ -34,7 +34,7 @@ router.get('/trends/:algorithmId?', authenticate, async (req: AuthRequest, res: 
 
     const trends = await advancedAnalyticsService.analyzeTrends(
       algorithmId,
-      req.userId,
+      req.userId as number,
       {
         periodDays: data.periodDays,
         trendType: data.trendType

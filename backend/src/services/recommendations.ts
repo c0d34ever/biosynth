@@ -295,7 +295,7 @@ export const recommendationsService = {
       [userId, limit]
     ) as any[];
 
-    return recommendations.map(rec => ({
+    return recommendations.map((rec: any) => ({
       ...rec,
       context: rec.context ? JSON.parse(rec.context) : null
     }));

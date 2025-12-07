@@ -13,7 +13,7 @@ router.get('/problem/:problemId', authenticate, async (req: AuthRequest, res: Re
     const limit = parseInt((req.query.limit as string) || '5', 10) || 5;
     const recommendations = await recommendationsService.recommendAlgorithmsForProblem(
       problemId,
-      req.userId,
+      req.userId as number,
       limit
     );
     res.json(recommendations);
@@ -28,7 +28,7 @@ router.get('/optimizations/:algorithmId', authenticate, async (req: AuthRequest,
     const algorithmId = parseId(req.params.algorithmId, 'algorithmId');
     const optimizations = await recommendationsService.recommendOptimizations(
       algorithmId,
-      req.userId
+      req.userId as number
     );
     res.json(optimizations);
   } catch (error: any) {
@@ -43,7 +43,7 @@ router.get('/similar/:algorithmId', authenticate, async (req: AuthRequest, res: 
     const limit = parseInt((req.query.limit as string) || '5', 10) || 5;
     const similar = await recommendationsService.findSimilarAlgorithms(
       algorithmId,
-      req.userId,
+      req.userId as number,
       limit
     );
     res.json(similar);
@@ -57,7 +57,7 @@ router.get('/user', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const limit = parseInt((req.query.limit as string) || '10', 10) || 10;
     const recommendations = await recommendationsService.getUserRecommendations(
-      req.userId,
+      req.userId as number,
       limit
     );
     res.json(recommendations);
@@ -70,7 +70,7 @@ router.get('/user', authenticate, async (req: AuthRequest, res: Response) => {
 router.patch('/:recommendationId/viewed', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const recommendationId = parseId(req.params.recommendationId, 'recommendationId');
-    await recommendationsService.markViewed(recommendationId, req.userId);
+    await recommendationsService.markViewed(recommendationId, req.userId as number);
     res.json({ message: 'Recommendation marked as viewed' });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to mark recommendation' });
@@ -81,7 +81,7 @@ router.patch('/:recommendationId/viewed', authenticate, async (req: AuthRequest,
 router.patch('/:recommendationId/accept', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const recommendationId = parseId(req.params.recommendationId, 'recommendationId');
-    await recommendationsService.acceptRecommendation(recommendationId, req.userId);
+    await recommendationsService.acceptRecommendation(recommendationId, req.userId as number);
     res.json({ message: 'Recommendation accepted' });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to accept recommendation' });

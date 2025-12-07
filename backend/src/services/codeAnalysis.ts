@@ -109,7 +109,7 @@ export const codeAnalysisService = {
         [fixedCode, codeGenerationId]
       );
       
-      analysis.fixedCode = fixedCode;
+      // Note: fixedCode is stored in the database, not in the analysis result
     }
 
     // Save analysis results

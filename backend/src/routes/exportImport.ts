@@ -71,7 +71,7 @@ router.post('/export/algorithms', authenticate, async (req: AuthRequest, res: Re
     const exportData = {
       exportDate: new Date().toISOString(),
       version: '1.0',
-      algorithms: algorithms.map(algo => ({
+      algorithms: algorithms.map((algo: any) => ({
         ...algo,
         steps: typeof algo.steps === 'string' ? JSON.parse(algo.steps) : algo.steps,
         applications: typeof algo.applications === 'string' ? JSON.parse(algo.applications) : algo.applications,

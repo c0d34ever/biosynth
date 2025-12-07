@@ -188,7 +188,7 @@ router.get('/jobs', authenticate, async (req: AuthRequest, res: any) => {
     }
 
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
+    params.push(parseInt(String(limit || '50')), parseInt(String(offset || '0')));
 
     const [jobs] = await pool.query(query, params) as any[];
 
@@ -211,8 +211,8 @@ router.get('/jobs', authenticate, async (req: AuthRequest, res: any) => {
     res.json({
       jobs,
       total: countResult[0]?.total || 0,
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      limit: parseInt(String(limit || '50')),
+      offset: parseInt(String(offset || '0'))
     });
   } catch (error: any) {
     console.error('[Statistics] Error:', error);
@@ -236,7 +236,7 @@ router.get('/trends', authenticate, async (req: AuthRequest, res: any) => {
       WHERE user_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
       GROUP BY DATE(created_at)
       ORDER BY date ASC
-    `, [userId, parseInt(days)]) as any[];
+    `, [userId, parseInt(String(days || '30'))]) as any[];
 
     // Job completion trend
     const [jobTrend] = await pool.query(`
@@ -248,7 +248,7 @@ router.get('/trends', authenticate, async (req: AuthRequest, res: any) => {
       WHERE user_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
       GROUP BY DATE(created_at), status
       ORDER BY date ASC
-    `, [userId, parseInt(days)]) as any[];
+    `, [userId, parseInt(String(days || '30'))]) as any[];
 
     // Score trend
     const [scoreTrend] = await pool.query(`
@@ -263,7 +263,7 @@ router.get('/trends', authenticate, async (req: AuthRequest, res: any) => {
       AND JSON_EXTRACT(aa.result, '$.score') IS NOT NULL
       GROUP BY DATE(aa.created_at)
       ORDER BY date ASC
-    `, [userId, parseInt(days)]) as any[];
+    `, [userId, parseInt(String(days || '30'))]) as any[];
 
     res.json({
       creationTrend,

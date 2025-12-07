@@ -23,7 +23,7 @@ router.post('/generate/:algorithmId', authenticate, async (req: AuthRequest, res
 
     const tests = await testingService.generateTests(
       algorithmId,
-      req.userId,
+      req.userId as number,
       data.testType || 'unit'
     );
 
@@ -41,7 +41,7 @@ router.post('/generate/:algorithmId', authenticate, async (req: AuthRequest, res
 router.get('/:algorithmId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const algorithmId = parseId(req.params.algorithmId, 'algorithmId');
-    const tests = await testingService.getTests(algorithmId, req.userId);
+    const tests = await testingService.getTests(algorithmId, req.userId as number);
     res.json(tests);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to get tests' });
@@ -55,7 +55,7 @@ router.post('/run', authenticate, async (req: AuthRequest, res: Response) => {
     const results = await testingService.runTests(
       data.testIds,
       data.codeGenerationId || null,
-      req.userId
+      req.userId as number
     );
     res.json(results);
   } catch (error: any) {
@@ -72,7 +72,7 @@ router.get('/results/:testId', authenticate, async (req: AuthRequest, res: Respo
   try {
     const testId = parseId(req.params.testId, 'testId');
     const limit = parseInt((req.query.limit as string) || '50', 10) || 50;
-    const results = await testingService.getTestResults(testId, req.userId, limit);
+    const results = await testingService.getTestResults(testId, req.userId as number, limit);
     res.json(results);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to get test results' });

@@ -34,7 +34,7 @@ router.post('/branches/:algorithmId', authenticate, async (req: AuthRequest, res
 
     const branch = await versionControlService.createBranch(
       algorithmId,
-      req.userId,
+      req.userId as number,
       data.branchName,
       {
         parentBranchId: data.parentBranchId,
@@ -57,7 +57,7 @@ router.post('/branches/:algorithmId', authenticate, async (req: AuthRequest, res
 router.get('/branches/:algorithmId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const algorithmId = parseId(req.params.algorithmId, 'algorithmId');
-    const branches = await versionControlService.getBranches(algorithmId, req.userId);
+    const branches = await versionControlService.getBranches(algorithmId, req.userId as number);
     res.json(branches);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to get branches' });
@@ -68,7 +68,7 @@ router.get('/branches/:algorithmId', authenticate, async (req: AuthRequest, res:
 router.get('/branches/:branchId/details', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const branchId = parseId(req.params.branchId, 'branchId');
-    const branch = await versionControlService.getBranch(branchId, req.userId);
+    const branch = await versionControlService.getBranch(branchId, req.userId as number);
     res.json(branch);
   } catch (error: any) {
     res.status(404).json({ error: error.message || 'Branch not found' });
@@ -81,7 +81,7 @@ router.post('/branches/:branchId/versions', authenticate, async (req: AuthReques
     const branchId = parseId(req.params.branchId, 'branchId');
     const data = createVersionSchema.parse(req.body);
 
-    const version = await versionControlService.createVersion(branchId, req.userId, data);
+    const version = await versionControlService.createVersion(branchId, req.userId as number, data);
     res.status(201).json(version);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -101,7 +101,7 @@ router.post('/branches/:sourceBranchId/merge', authenticate, async (req: AuthReq
     await versionControlService.mergeBranch(
       sourceBranchId,
       data.targetBranchId,
-      req.userId,
+      req.userId as number,
       { strategy: data.strategy }
     );
 
@@ -124,7 +124,7 @@ router.get('/compare/:versionId1/:versionId2', authenticate, async (req: AuthReq
     const comparison = await versionControlService.compareVersions(
       versionId1,
       versionId2,
-      req.userId
+      req.userId as number
     );
 
     res.json(comparison);

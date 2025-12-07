@@ -45,7 +45,7 @@ if (REDIS_ENABLED) {
 export interface JobData {
   jobId: number;
   userId: number;
-  jobType: 'generate' | 'synthesize' | 'analyze';
+  jobType: 'generate' | 'synthesize' | 'analyze' | 'improve';
   inputData: any;
 }
 

@@ -25,6 +25,8 @@ The application consists of the following microservices:
 
 **For comprehensive deployment guide, see [DEPLOYMENT.md](./DEPLOYMENT.md)**
 
+**For Docker commands reference, see [DOCKER_COMMANDS.md](./DOCKER_COMMANDS.md)**
+
 **For Nginx reverse proxy setup, see [NGINX_SETUP.md](./NGINX_SETUP.md)**
 
 **For API URL configuration, see [API_URL_CONFIGURATION.md](./API_URL_CONFIGURATION.md)**
