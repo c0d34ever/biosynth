@@ -19,6 +19,16 @@ The application consists of the following microservices:
 - MySQL server (or use Docker)
 - Redis (or use Docker)
 
+## 🚀 Quick Deployment
+
+**For quick deployment instructions, see [QUICK_DEPLOY.md](./QUICK_DEPLOY.md)**
+
+**For comprehensive deployment guide, see [DEPLOYMENT.md](./DEPLOYMENT.md)**
+
+**For Nginx reverse proxy setup, see [NGINX_SETUP.md](./NGINX_SETUP.md)**
+
+**For API URL configuration, see [API_URL_CONFIGURATION.md](./API_URL_CONFIGURATION.md)**
+
 ## Quick Start with Docker
 
 1. **Clone and setup environment:**
