@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { authApi } from './services/api';
 import { Auth } from './components/Auth';
 import AppContent from './components/AppContent';
+import Landing from './pages/Landing';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 const App: React.FC = () => {
@@ -38,14 +39,21 @@ const App: React.FC = () => {
     );
   }
 
-  if (!user) {
-    return <Auth onLogin={handleLogin} />;
-  }
-
   return (
     <ErrorBoundary>
       <Router>
-        <AppContent />
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={!user ? <Landing /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/login" element={!user ? <Auth onLogin={handleLogin} /> : <Navigate to="/dashboard" replace />} />
+          
+          {/* Protected routes */}
+          {user ? (
+            <Route path="/*" element={<AppContent />} />
+          ) : (
+            <Route path="/*" element={<Navigate to="/" replace />} />
+          )}
+        </Routes>
       </Router>
     </ErrorBoundary>
   );

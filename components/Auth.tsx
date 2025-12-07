@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authApi } from '../services/api';
 import { Button } from './Button';
 import { Input } from './Input';
@@ -9,6 +10,7 @@ interface AuthProps {
 }
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,6 +31,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         data = await authApi.register(email, password, name);
       }
       onLogin(data.user);
+      navigate('/dashboard');
     } catch (err: any) {
       // Provide user-friendly error messages
       let errorMessage = 'Authentication failed';

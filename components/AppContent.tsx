@@ -207,7 +207,8 @@ const AppContent: React.FC = () => {
           </div>
           
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/home" element={<Home algorithms={algorithms} onNavigate={(view) => {
               if (view === 'library') navigate('/library');
               else if (view === 'generate') navigate('/generate');
