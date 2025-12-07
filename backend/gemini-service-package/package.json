@@ -1,0 +1,35 @@
+{
+  "name": "gemini-service",
+  "version": "1.0.0",
+  "description": "Portable Gemini AI service for story generation, scene suggestions, and content analysis",
+  "type": "module",
+  "main": "src/geminiService.js",
+  "types": "src/geminiService.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/geminiService.ts"
+  },
+  "keywords": [
+    "gemini",
+    "ai",
+    "story",
+    "generation",
+    "content",
+    "analysis"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google/genai": "^1.30.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "~5.8.2",
+    "tsx": "^4.7.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
+

@@ -1,0 +1,25 @@
+{
+  "name": "biosynth-queue-worker",
+  "version": "1.0.0",
+  "description": "Queue worker service for BioSynth Architect",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "bullmq": "^5.3.4",
+    "ioredis": "^5.3.2",
+    "mysql2": "^3.6.5",
+    "@google/genai": "^1.31.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}
+
