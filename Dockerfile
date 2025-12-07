@@ -33,7 +33,12 @@ FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx config with API proxy
-RUN echo 'server { \
+RUN echo 'upstream backend { \
+    server biosynth-backend:3001; \
+    keepalive 64; \
+} \
+\
+server { \
     listen 80; \
     server_name _; \
     root /usr/share/nginx/html; \
@@ -50,9 +55,9 @@ RUN echo 'server { \
         try_files $uri $uri/ /index.html; \
     } \
     \
-    # API proxy (if backend is on same domain) \
+    # API proxy to backend service \
     location /api { \
-        proxy_pass http://backend:3001; \
+        proxy_pass http://backend/api; \
         proxy_http_version 1.1; \
         proxy_set_header Upgrade $http_upgrade; \
         proxy_set_header Connection "upgrade"; \
@@ -60,7 +65,17 @@ RUN echo 'server { \
         proxy_set_header X-Real-IP $remote_addr; \
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
         proxy_set_header X-Forwarded-Proto $scheme; \
+        proxy_set_header X-Forwarded-Host $host; \
+        proxy_set_header X-Forwarded-Port $server_port; \
         proxy_cache_bypass $http_upgrade; \
+        \
+        # Timeouts for long-running requests \
+        proxy_connect_timeout 60s; \
+        proxy_send_timeout 60s; \
+        proxy_read_timeout 60s; \
+        \
+        # Don't cache API responses \
+        add_header Cache-Control "no-cache, no-store, must-revalidate"; \
     } \
     \
     # Static assets caching \
