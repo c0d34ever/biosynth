@@ -35,7 +35,7 @@ export const codeGenerationService = {
 
     // Generate code using AI
     const prompt = this._buildCodeGenerationPrompt(algorithm, steps, language);
-    const client = getAIClient();
+    const client = await getAIClient(userId);
 
     const response = await generateContentWithErrorHandling(client, {
       model: 'gemini-2.5-flash',

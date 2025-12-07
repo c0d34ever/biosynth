@@ -46,7 +46,7 @@ export const advancedAnalyticsService = {
 
     // Use AI to predict performance
     const prompt = this._buildPredictionPrompt(algorithm, metrics, scores);
-    const client = getAIClient();
+    const client = await getAIClient(userId);
 
     const response = await generateContentWithErrorHandling(client, {
       model: DEFAULT_MODEL,
@@ -217,7 +217,7 @@ export const advancedAnalyticsService = {
 
     // Use AI for forecasting
     const prompt = this._buildForecastPrompt(metrics, forecastDays);
-    const client = getAIClient();
+    const client = await getAIClient(userId);
 
     const response = await generateContentWithErrorHandling(client, {
       model: DEFAULT_MODEL,

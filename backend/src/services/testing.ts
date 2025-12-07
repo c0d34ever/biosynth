@@ -35,7 +35,7 @@ export const testingService = {
 
     // Generate tests using AI
     const prompt = this._buildTestGenerationPrompt(algorithm, steps, applications, testType);
-    const client = getAIClient();
+    const client = await getAIClient(userId);
 
     const response = await generateContentWithErrorHandling(client, {
       model: DEFAULT_MODEL,

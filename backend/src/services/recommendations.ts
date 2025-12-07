@@ -37,7 +37,7 @@ export const recommendationsService = {
 
     // Use AI to recommend algorithms
     const prompt = this._buildProblemRecommendationPrompt(problem, userAlgorithms);
-    const client = getAIClient();
+    const client = await getAIClient(userId);
 
     const response = await generateContentWithErrorHandling(client, {
       model: DEFAULT_MODEL,
@@ -130,7 +130,7 @@ export const recommendationsService = {
 
     // Use AI to recommend optimizations
     const prompt = this._buildOptimizationPrompt(algorithm, steps, improvements, gaps);
-    const client = getAIClient();
+    const client = await getAIClient(userId);
 
     const response = await generateContentWithErrorHandling(client, {
       model: DEFAULT_MODEL,
@@ -226,7 +226,7 @@ export const recommendationsService = {
 
     // Use AI to refine similarity
     const prompt = this._buildSimilarityPrompt(algorithm, similar);
-    const client = getAIClient();
+    const client = await getAIClient(userId);
 
     const response = await generateContentWithErrorHandling(client, {
       model: DEFAULT_MODEL,

@@ -48,7 +48,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-this-secret-key}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-AIzaSyBq34MoOQ3NBHhJ1TQZD-vxeLSJM86Dog4}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173,https://biosynth.youtilitybox.com}
     ports:
       - "3001:3001"
@@ -74,7 +74,7 @@ services:
       DB_NAME: ${DB_NAME:-biosynth}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-AIzaSyBq34MoOQ3NBHhJ1TQZD-vxeLSJM86Dog4}
     depends_on:
       mysql:
         condition: service_healthy

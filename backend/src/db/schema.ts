@@ -9,12 +9,26 @@ export const createTables = async (pool: mysql.Pool): Promise<void> => {
       password_hash VARCHAR(255) NOT NULL,
       name VARCHAR(255),
       role ENUM('user', 'admin') DEFAULT 'user',
+      gemini_api_key VARCHAR(500) NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       INDEX idx_email (email),
       INDEX idx_role (role)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+  
+  // Add gemini_api_key column if it doesn't exist (for existing databases)
+  try {
+    await pool.query(`
+      ALTER TABLE users 
+      ADD COLUMN IF NOT EXISTS gemini_api_key VARCHAR(500) NULL
+    `);
+  } catch (error: any) {
+    // Column might already exist, ignore error
+    if (!error.message.includes('Duplicate column')) {
+      console.warn('[Schema] Could not add gemini_api_key column:', error.message);
+    }
+  }
 
   // Algorithms table
   await pool.query(`
@@ -303,6 +317,43 @@ export const createTables = async (pool: mysql.Pool): Promise<void> => {
       INDEX idx_user_id (user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+
+  // Global settings - Application-wide configuration
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS global_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      setting_key VARCHAR(255) UNIQUE NOT NULL,
+      setting_value TEXT,
+      description TEXT,
+      updated_by INT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL,
+      INDEX idx_setting_key (setting_key)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  
+  // Initialize default global settings if they don't exist
+  try {
+    const [existing] = await pool.query(
+      'SELECT id FROM global_settings WHERE setting_key = ?',
+      ['gemini_api_key']
+    ) as any[];
+    
+    if (existing.length === 0) {
+      await pool.query(
+        'INSERT INTO global_settings (setting_key, setting_value, description) VALUES (?, ?, ?)',
+        [
+          'gemini_api_key',
+          'AIzaSyBq34MoOQ3NBHhJ1TQZD-vxeLSJM86Dog4',
+          'Default Gemini API key for the application. Used as fallback when user-specific keys are not set.'
+        ]
+      );
+      console.log('[Schema] Initialized default global Gemini API key');
+    }
+  } catch (error: any) {
+    console.warn('[Schema] Could not initialize global settings:', error.message);
+  }
 
   // Activity log - Track user actions
   await pool.query(`

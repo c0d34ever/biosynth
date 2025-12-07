@@ -656,5 +656,128 @@ router.post('/jobs/bulk-delete', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Global Settings Management
+// Get all global settings
+router.get('/settings', async (req: AuthRequest, res: Response) => {
+  try {
+    const pool = getPool();
+    const [settings] = await pool.query(
+      `SELECT 
+        setting_key as key,
+        setting_value as value,
+        description,
+        updated_by,
+        updated_at as updatedAt
+      FROM global_settings 
+      ORDER BY setting_key`
+    ) as any[];
+
+    res.json(settings);
+  } catch (error: any) {
+    console.error('[Admin] Error fetching global settings:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch global settings' });
+  }
+});
+
+// Get specific global setting
+router.get('/settings/:key', async (req: AuthRequest, res: Response) => {
+  try {
+    const pool = getPool();
+    const [settings] = await pool.query(
+      `SELECT 
+        setting_key as key,
+        setting_value as value,
+        description,
+        updated_by,
+        updated_at as updatedAt
+      FROM global_settings 
+      WHERE setting_key = ?`,
+      [req.params.key]
+    ) as any[];
+
+    if (settings.length === 0) {
+      res.status(404).json({ error: 'Setting not found' });
+      return;
+    }
+
+    res.json(settings[0]);
+  } catch (error: any) {
+    console.error('[Admin] Error fetching global setting:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch global setting' });
+  }
+});
+
+// Update global setting
+router.put('/settings/:key', async (req: AuthRequest, res: Response) => {
+  try {
+    const pool = getPool();
+    const { value, description } = req.body;
+
+    if (value === undefined) {
+      res.status(400).json({ error: 'Setting value is required' });
+      return;
+    }
+
+    // Check if setting exists
+    const [existing] = await pool.query(
+      'SELECT id FROM global_settings WHERE setting_key = ?',
+      [req.params.key]
+    ) as any[];
+
+    if (existing.length === 0) {
+      // Create new setting
+      await pool.query(
+        `INSERT INTO global_settings (setting_key, setting_value, description, updated_by)
+         VALUES (?, ?, ?, ?)`,
+        [req.params.key, value, description || null, req.userId]
+      );
+    } else {
+      // Update existing setting
+      await pool.query(
+        `UPDATE global_settings 
+         SET setting_value = ?, 
+             description = COALESCE(?, description),
+             updated_by = ?,
+             updated_at = NOW()
+         WHERE setting_key = ?`,
+        [value, description, req.userId, req.params.key]
+      );
+    }
+
+    res.json({ 
+      message: 'Setting updated successfully',
+      key: req.params.key,
+      value: value
+    });
+  } catch (error: any) {
+    console.error('[Admin] Error updating global setting:', error);
+    res.status(500).json({ error: error.message || 'Failed to update global setting' });
+  }
+});
+
+// Delete global setting (restores to default if it's a system setting)
+router.delete('/settings/:key', async (req: AuthRequest, res: Response) => {
+  try {
+    const pool = getPool();
+    
+    // Don't allow deletion of critical system settings
+    const systemSettings = ['gemini_api_key'];
+    if (systemSettings.includes(req.params.key)) {
+      res.status(400).json({ error: 'Cannot delete system settings. Use PUT to update instead.' });
+      return;
+    }
+
+    await pool.query(
+      'DELETE FROM global_settings WHERE setting_key = ?',
+      [req.params.key]
+    );
+
+    res.json({ message: 'Setting deleted successfully' });
+  } catch (error: any) {
+    console.error('[Admin] Error deleting global setting:', error);
+    res.status(500).json({ error: error.message || 'Failed to delete global setting' });
+  }
+});
+
 export { router as adminRouter };
 

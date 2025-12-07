@@ -135,16 +135,16 @@ export const startWorker = (): void => {
           // Process based on job type
           switch (jobType) {
             case 'generate':
-              result = await processGenerateJob(inputData);
+              result = await processGenerateJob(inputData, userId);
               break;
             case 'synthesize':
-              result = await processSynthesizeJob(inputData);
+              result = await processSynthesizeJob(inputData, userId);
               break;
             case 'analyze':
-              result = await processAnalyzeJob(inputData, pool);
+              result = await processAnalyzeJob(inputData, pool, userId);
               break;
             case 'improve':
-              result = await processImproveJob(inputData, pool);
+              result = await processImproveJob(inputData, pool, userId);
               break;
             default:
               throw new Error(`Unknown job type: ${jobType}`);

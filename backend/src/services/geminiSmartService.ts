@@ -215,7 +215,7 @@ export const smartGeminiRequest = async <T = any>(
       
       // Get AI client
       console.log(`[SmartGemini] Getting AI client...`);
-      const ai = getAIClient();
+      const ai = await getAIClient(); // No userId available in this context
       console.log(`[SmartGemini] AI client obtained`);
       
       // Make request

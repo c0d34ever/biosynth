@@ -8,9 +8,9 @@ import { smartGenerateContent } from './geminiSmartService.js';
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const FALLBACK_MODEL = 'gemini-2.5-flash'; // Fast, good free tier limits
 
-// Adapter to get AI client (local version is synchronous)
-const getAIClientAdapter = () => {
-  return getAIClient();
+// Adapter to get AI client (now async, accepts userId)
+const getAIClientAdapter = async (userId?: number) => {
+  return await getAIClient(userId);
 };
 
 // Helper function to sleep/delay
@@ -712,7 +712,7 @@ export const processGenerateJob = async (inputData: {
   inspiration: string;
   domain: string;
 }, userId?: number): Promise<any> => {
-  const ai = getAIClientAdapter();
+  const ai = await getAIClientAdapter(userId);
   
   const prompt = `
     Design a NOVEL, theoretical algorithm inspired by "${inputData.inspiration}" for the problem domain of "${inputData.domain}".
@@ -759,7 +759,7 @@ export const processSynthesizeJob = async (inputData: {
   algorithms: any[];
   focus?: string;
 }, userId?: number): Promise<any> => {
-  const ai = getAIClientAdapter();
+  const ai = await getAIClientAdapter(userId);
 
   const algoSummaries = inputData.algorithms
     .map(a => `${a.name} (Inspiration: ${a.inspiration}, Principle: ${a.principle})`)
@@ -881,7 +881,7 @@ export const processAnalyzeJob = async (inputData: {
   }
   
   console.log('[processAnalyzeJob] Getting AI client...');
-  const ai = getAIClientAdapter();
+  const ai = await getAIClientAdapter(userId);
   console.log('[processAnalyzeJob] AI client obtained');
 
   let prompt = '';
@@ -1077,7 +1077,7 @@ export const processImproveJob = async (inputData: {
     }
     
     console.log('[processImproveJob] Getting AI client...');
-    const ai = getAIClientAdapter();
+    const ai = await getAIClientAdapter(userId);
     console.log('[processImproveJob] AI client obtained');
 
     const prompt = `

@@ -141,7 +141,7 @@ export const codeAnalysisService = {
     executionResults: any
   ): Promise<CodeAnalysisResult> {
     const prompt = this._buildAnalysisPrompt(code, language, algorithm, executionResults);
-    const client = getAIClient();
+    const client = await getAIClient(userId);
 
     const response = await generateContentWithErrorHandling(client, {
       model: 'gemini-2.5-flash',
@@ -242,7 +242,7 @@ Requirements:
 
 Return ONLY the complete fixed code, no explanations.`;
 
-    const client = getAIClient();
+    const client = await getAIClient(userId);
     
     // For text responses, use the AI client directly
     try {

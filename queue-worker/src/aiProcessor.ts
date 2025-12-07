@@ -467,8 +467,8 @@ const generateContentWithErrorHandling = async (
 export const processGenerateJob = async (inputData: {
   inspiration: string;
   domain: string;
-}): Promise<any> => {
-  const ai = getAIClient();
+}, userId?: number): Promise<any> => {
+  const ai = await getAIClient(userId);
   
   const prompt = `
     Design a NOVEL, theoretical algorithm inspired by "${inputData.inspiration}" for the problem domain of "${inputData.domain}".
@@ -514,8 +514,8 @@ export const processGenerateJob = async (inputData: {
 export const processSynthesizeJob = async (inputData: {
   algorithms: any[];
   focus?: string;
-}): Promise<any> => {
-  const ai = getAIClient();
+}, userId?: number): Promise<any> => {
+  const ai = await getAIClient(userId);
 
   const algoSummaries = inputData.algorithms
     .map(a => `${a.name} (Inspiration: ${a.inspiration}, Principle: ${a.principle})`)
@@ -580,7 +580,7 @@ export const processAnalyzeJob = async (inputData: {
 
   const algo = algorithms[0];
   const steps = JSON.parse(algo.steps);
-  const ai = getAIClient();
+  const ai = await getAIClient(userId);
 
   let prompt = '';
   let schema: any;
@@ -720,7 +720,7 @@ export const processImproveJob = async (inputData: {
     }
   }
   
-  const ai = getAIClient();
+  const ai = await getAIClient(userId);
 
   const prompt = `
     Improve the following bio-inspired algorithm based on this specific issue or enhancement request:
