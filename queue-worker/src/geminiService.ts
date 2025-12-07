@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { getPool } from '../db/connection.js';
+import { getPool } from './db/connection.js';
 
 /**
  * Default Gemini API key (final fallback)
