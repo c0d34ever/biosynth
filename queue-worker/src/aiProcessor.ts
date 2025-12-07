@@ -1,26 +1,13 @@
 import { Type } from "@google/genai";
 import mysql from 'mysql2/promise';
-// @ts-ignore - Package is outside rootDir but we need to use it
-import { getAIClient as getPackageAIClient } from '../../backend/gemini-service-package/src/geminiService.js';
-// @ts-ignore - Package is outside rootDir but we need to use it
-import { initializeGeminiService } from '../../backend/gemini-service-package/src/config.js';
-import { extractErrorMessage } from './geminiService.js';
-
-// Initialize the package service
-initializeGeminiService({
-  defaultApiKey: process.env.GEMINI_API_KEY,
-  debug: process.env.NODE_ENV === 'development'
-});
+import { getAIClient, extractErrorMessage } from './geminiService.js';
 
 // Default model - using gemini-2.5-flash for better free tier support
 // gemini-3-pro-preview has 0 requests/day on free tier
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const FALLBACK_MODEL = 'gemini-2.5-flash'; // Fast, good free tier limits
 
-// Adapter to get AI client (package version is async)
-const getAIClient = async (userId?: number) => {
-  return await getPackageAIClient(userId);
-};
+// Note: getAIClient is imported from geminiService.ts and is synchronous
 
 // Helper function to sleep/delay
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -481,7 +468,7 @@ export const processGenerateJob = async (inputData: {
   inspiration: string;
   domain: string;
 }): Promise<any> => {
-  const ai = await getAIClient();
+  const ai = getAIClient();
   
   const prompt = `
     Design a NOVEL, theoretical algorithm inspired by "${inputData.inspiration}" for the problem domain of "${inputData.domain}".
@@ -528,7 +515,7 @@ export const processSynthesizeJob = async (inputData: {
   algorithms: any[];
   focus?: string;
 }): Promise<any> => {
-  const ai = await getAIClient();
+  const ai = getAIClient();
 
   const algoSummaries = inputData.algorithms
     .map(a => `${a.name} (Inspiration: ${a.inspiration}, Principle: ${a.principle})`)
@@ -593,7 +580,7 @@ export const processAnalyzeJob = async (inputData: {
 
   const algo = algorithms[0];
   const steps = JSON.parse(algo.steps);
-  const ai = await getAIClient();
+  const ai = getAIClient();
 
   let prompt = '';
   let schema: any;
@@ -733,7 +720,7 @@ export const processImproveJob = async (inputData: {
     }
   }
   
-  const ai = await getAIClient();
+  const ai = getAIClient();
 
   const prompt = `
     Improve the following bio-inspired algorithm based on this specific issue or enhancement request:

@@ -9,6 +9,8 @@ COPY tsconfig.json ./
 # Install dependencies
 RUN npm ci
 
+# Note: gemini-service-package is not needed as we use local geminiService.ts
+
 # Copy source code
 COPY src ./src
 

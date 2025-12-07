@@ -15,7 +15,7 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["src/**/*", "gemini-service-package/src/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
 

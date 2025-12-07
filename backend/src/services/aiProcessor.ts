@@ -1,26 +1,16 @@
 import { Type } from "@google/genai";
 import { getPool } from '../db/connection.js';
-// @ts-ignore - Package is outside rootDir but we need to use it
-import { getAIClient as getPackageAIClient } from '../../gemini-service-package/src/geminiService.js';
-// @ts-ignore - Package is outside rootDir but we need to use it
-import { initializeGeminiService } from '../../gemini-service-package/src/config.js';
-import { extractErrorMessage } from './geminiService.js';
+import { getAIClient, extractErrorMessage } from './geminiService.js';
 import { smartGenerateContent } from './geminiSmartService.js';
-
-// Initialize the package service
-initializeGeminiService({
-  defaultApiKey: process.env.GEMINI_API_KEY,
-  debug: process.env.NODE_ENV === 'development'
-});
 
 // Default model - using gemini-2.5-flash for better free tier support
 // gemini-3-pro-preview has 0 requests/day on free tier
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const FALLBACK_MODEL = 'gemini-2.5-flash'; // Fast, good free tier limits
 
-// Adapter to get AI client (package version is async)
-const getAIClient = async (userId?: number) => {
-  return await getPackageAIClient(userId);
+// Adapter to get AI client (local version is synchronous)
+const getAIClientAdapter = () => {
+  return getAIClient();
 };
 
 // Helper function to sleep/delay
@@ -722,7 +712,7 @@ export const processGenerateJob = async (inputData: {
   inspiration: string;
   domain: string;
 }, userId?: number): Promise<any> => {
-  const ai = await getAIClient(userId);
+  const ai = getAIClientAdapter();
   
   const prompt = `
     Design a NOVEL, theoretical algorithm inspired by "${inputData.inspiration}" for the problem domain of "${inputData.domain}".
@@ -769,7 +759,7 @@ export const processSynthesizeJob = async (inputData: {
   algorithms: any[];
   focus?: string;
 }, userId?: number): Promise<any> => {
-  const ai = await getAIClient(userId);
+  const ai = getAIClientAdapter();
 
   const algoSummaries = inputData.algorithms
     .map(a => `${a.name} (Inspiration: ${a.inspiration}, Principle: ${a.principle})`)
@@ -891,7 +881,7 @@ export const processAnalyzeJob = async (inputData: {
   }
   
   console.log('[processAnalyzeJob] Getting AI client...');
-  const ai = await getAIClient(userId);
+  const ai = getAIClientAdapter();
   console.log('[processAnalyzeJob] AI client obtained');
 
   let prompt = '';
@@ -1087,7 +1077,7 @@ export const processImproveJob = async (inputData: {
     }
     
     console.log('[processImproveJob] Getting AI client...');
-    const ai = await getAIClient(userId);
+    const ai = getAIClientAdapter();
     console.log('[processImproveJob] AI client obtained');
 
     const prompt = `

@@ -1,11 +1,5 @@
 import { Type } from "@google/genai";
-// @ts-ignore - Package is outside rootDir but we need to use it
-import { getAIClient as getPackageAIClient } from '../../gemini-service-package/src/geminiService.js';
-
-// Adapter to get AI client (package version is async)
-const getAIClient = async (userId?: number) => {
-  return await getPackageAIClient(userId);
-};
+import { getAIClient } from './geminiService.js';
 
 // Helper function to sleep/delay
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -221,7 +215,7 @@ export const smartGeminiRequest = async <T = any>(
       
       // Get AI client
       console.log(`[SmartGemini] Getting AI client...`);
-      const ai = await getAIClient(userId);
+      const ai = getAIClient();
       console.log(`[SmartGemini] AI client obtained`);
       
       // Make request
