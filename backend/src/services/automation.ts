@@ -57,7 +57,7 @@ async function _generateProblemIdea(systemUserId: number): Promise<{ domain: str
     const selectedProblem = userProblems[Math.floor(Math.random() * userProblems.length)];
     
     // Use AI to suggest a bio-inspiration for this problem
-    const ai = await getPackageAIClient(systemUserId);
+    const ai = getPackageAIClient();
     const prompt = `
       Given this problem: "${selectedProblem.title}" - ${selectedProblem.description}
       Domain: ${selectedProblem.domain || 'General'}
@@ -109,7 +109,7 @@ async function _generateProblemIdea(systemUserId: number): Promise<{ domain: str
   }
   
   // Otherwise, use AI to generate a completely new problem idea
-  const ai = await getPackageAIClient(systemUserId);
+  const ai = getPackageAIClient();
   const prompt = `
     Generate a diverse, real-world problem that needs solving. Consider problems from:
     - Technology and Computing
