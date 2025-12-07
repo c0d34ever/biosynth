@@ -1,21 +1,23 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: biosynth-mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-biosynth_password}
-      MYSQL_DATABASE: ${DB_NAME:-biosynth}
-    ports:
-      - "${DB_PORT:-3306}:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - biosynth-network
+  # MySQL service - Commented out since we're using remote database
+  # Uncomment if you want to use local MySQL instead of remote
+  # mysql:
+  #   image: mysql:8.0
+  #   container_name: biosynth-mysql
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-biosynth_password}
+  #     MYSQL_DATABASE: ${DB_NAME:-biosynth}
+  #   ports:
+  #     - "${DB_PORT:-3306}:3306"
+  #   volumes:
+  #     - mysql_data:/var/lib/mysql
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - biosynth-network
 
   redis:
     image: redis:7-alpine
@@ -40,11 +42,11 @@ services:
     environment:
       PORT: 3001
       NODE_ENV: production
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: root
-      DB_PASSWORD: ${DB_PASSWORD:-biosynth_password}
-      DB_NAME: ${DB_NAME:-biosynth}
+      DB_HOST: ${DB_HOST:-162.241.86.188}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-youtigyk_bioalgo}
+      DB_PASSWORD: ${DB_PASSWORD:-Sun12day46fun}
+      DB_NAME: ${DB_NAME:-youtigyk_bioalgo}
       JWT_SECRET: ${JWT_SECRET:-change-this-secret-key}
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -53,8 +55,8 @@ services:
     ports:
       - "3001:3001"
     depends_on:
-      mysql:
-        condition: service_healthy
+      # mysql:
+      #   condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -67,17 +69,17 @@ services:
       dockerfile: Dockerfile
     container_name: biosynth-queue-worker
     environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: root
-      DB_PASSWORD: ${DB_PASSWORD:-biosynth_password}
-      DB_NAME: ${DB_NAME:-biosynth}
+      DB_HOST: ${DB_HOST:-162.241.86.188}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-youtigyk_bioalgo}
+      DB_PASSWORD: ${DB_PASSWORD:-Sun12day46fun}
+      DB_NAME: ${DB_NAME:-youtigyk_bioalgo}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       GEMINI_API_KEY: ${GEMINI_API_KEY:-AIzaSyBq34MoOQ3NBHhJ1TQZD-vxeLSJM86Dog4}
     depends_on:
-      mysql:
-        condition: service_healthy
+      # mysql:
+      #   condition: service_healthy
       redis:
         condition: service_healthy
     networks:
