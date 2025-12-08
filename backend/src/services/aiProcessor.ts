@@ -1,6 +1,6 @@
 import { Type } from "@google/genai";
 import { getPool } from '../db/connection.js';
-import { getAIClient, extractErrorMessage } from './geminiService.js';
+import { getAIClient, extractErrorMessage, isInvalidApiKeyError } from './geminiService.js';
 import { smartGenerateContent } from './geminiSmartService.js';
 
 // Default model - using gemini-2.5-flash for better free tier support
@@ -677,8 +677,20 @@ const generateContentWithErrorHandling = async (
     
     const statusCode = error.status || error.error?.code || error.code;
     const isRateLimit = statusCode === 429 || error.error?.status === 'RESOURCE_EXHAUSTED';
+    const isInvalidKey = isInvalidApiKeyError(error);
     console.log('[Gemini] Status code:', statusCode);
     console.log('[Gemini] Is rate limit:', isRateLimit);
+    console.log('[Gemini] Is invalid API key:', isInvalidKey);
+    
+    // Don't retry on invalid API key errors - they won't succeed
+    if (isInvalidKey) {
+      console.error('[Gemini] ❌ Invalid/leaked API key detected - stopping retries');
+      const errorMessage = extractErrorMessage(error);
+      const apiError = new Error(errorMessage);
+      (apiError as any).status = statusCode;
+      (apiError as any).isInvalidApiKey = true;
+      throw apiError;
+    }
     
     // Retry logic for rate limit errors
     if (isRateLimit && retryCount < maxRetries) {

@@ -26,13 +26,13 @@ export function startScheduler(): void {
     timezone: process.env.TZ || 'UTC'
   });
   
-  // Schedule separate daily algorithm generation (runs at 3 AM)
-  const GENERATION_CRON = process.env.GENERATION_CRON || '0 3 * * *';
+  // Schedule hourly algorithm generation (runs every hour at minute 0)
+  const GENERATION_CRON = process.env.GENERATION_CRON || '0 * * * *';
   generationJob = cron.schedule(GENERATION_CRON, async () => {
-    console.log(`\n🤖 Running scheduled daily algorithm generation at ${new Date().toISOString()}`);
+    console.log(`\n🤖 Running scheduled hourly algorithm generation at ${new Date().toISOString()}`);
     try {
       await generateDailyAlgorithms();
-      console.log('✅ Daily algorithm generation completed');
+      console.log('✅ Hourly algorithm generation completed');
     } catch (error: any) {
       console.error('❌ Scheduled algorithm generation failed:', error.message);
     }
@@ -92,7 +92,7 @@ export function getSchedulerStatus(): {
     enabled: dailyJob !== null && generationJob !== null && synthesisJob !== null,
     schedules: {
       daily: process.env.AUTOMATION_CRON || '0 2 * * *',
-      generation: process.env.GENERATION_CRON || '0 3 * * *',
+      generation: process.env.GENERATION_CRON || '0 * * * *',
       synthesis: process.env.SYNTHESIS_CRON || '0 4 * * *'
     }
   };

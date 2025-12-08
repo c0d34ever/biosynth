@@ -97,11 +97,32 @@ export const getAIClient = async (userId?: number): Promise<GoogleGenAI> => {
 };
 
 /**
+ * Check if error indicates an invalid/leaked API key
+ */
+export const isInvalidApiKeyError = (error: any): boolean => {
+  const statusCode = error.status || error.error?.code || error.code;
+  if (statusCode !== 403) return false;
+  
+  const errorMessage = error.message || error.error?.message || '';
+  const messageStr = typeof errorMessage === 'string' ? errorMessage.toLowerCase() : JSON.stringify(errorMessage).toLowerCase();
+  
+  return messageStr.includes('leaked') || 
+         messageStr.includes('invalid api key') || 
+         messageStr.includes('permission denied') ||
+         messageStr.includes('api key was reported');
+};
+
+/**
  * Helper function to extract user-friendly error messages from Gemini API errors.
  * Handles various error formats including nested structures and JSON strings.
  */
 export const extractErrorMessage = (error: any): string => {
   try {
+    // Check for invalid/leaked API key first
+    if (isInvalidApiKeyError(error)) {
+      return 'Your API key was reported as leaked or is invalid. Please use another API key. Update it in your user settings or configure GEMINI_API_KEY in environment variables.';
+    }
+    
     // If error.message is already a clean string (not JSON), use it
     if (error.message && typeof error.message === 'string' && !error.message.startsWith('{') && !error.message.startsWith('[')) {
       // Check if it's a quota error

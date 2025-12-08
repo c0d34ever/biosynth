@@ -1,6 +1,6 @@
 import { Type } from "@google/genai";
 import mysql from 'mysql2/promise';
-import { getAIClient, extractErrorMessage } from './geminiService.js';
+import { getAIClient, extractErrorMessage, isInvalidApiKeyError } from './geminiService.js';
 
 // Default model - using gemini-2.5-flash for better free tier support
 // gemini-3-pro-preview has 0 requests/day on free tier
@@ -437,6 +437,17 @@ const generateContentWithErrorHandling = async (
   } catch (error: any) {
     const statusCode = error.status || error.error?.code || error.code;
     const isRateLimit = statusCode === 429 || error.error?.status === 'RESOURCE_EXHAUSTED';
+    const isInvalidKey = isInvalidApiKeyError(error);
+    
+    // Don't retry on invalid API key errors - they won't succeed
+    if (isInvalidKey) {
+      console.error('[Gemini] ❌ Invalid/leaked API key detected - stopping retries');
+      const errorMessage = extractErrorMessage(error);
+      const apiError = new Error(errorMessage);
+      (apiError as any).status = statusCode;
+      (apiError as any).isInvalidApiKey = true;
+      throw apiError;
+    }
     
     // Retry logic for rate limit errors
     if (isRateLimit && retryCount < maxRetries) {

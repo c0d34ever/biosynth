@@ -17,7 +17,7 @@ services:
   #     timeout: 5s
   #     retries: 5
   #   networks:
-  #     - biosynth-network
+  #     - biosynth-network0
 
   redis:
     image: redis:7-alpine
@@ -52,6 +52,9 @@ services:
       REDIS_PORT: 6379
       GEMINI_API_KEY: ${GEMINI_API_KEY:-AIzaSyBq34MoOQ3NBHhJ1TQZD-vxeLSJM86Dog4}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173,https://biosynth.youtilitybox.com}
+      GENERATION_CRON: ${GENERATION_CRON:-0 * * * *}
+      DAILY_ALGORITHMS_MIN: ${DAILY_ALGORITHMS_MIN:-1}
+      DAILY_ALGORITHMS_MAX: ${DAILY_ALGORITHMS_MAX:-2}
     ports:
       - "3001:3001"
     depends_on:

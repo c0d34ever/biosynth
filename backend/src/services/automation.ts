@@ -38,6 +38,16 @@ async function _getSystemUser(): Promise<number> {
   return result.insertId;
 }
 
+// Internal method - Check if error is due to invalid API key
+function _isInvalidApiKeyError(error: any): boolean {
+  return error?.isInvalidApiKey === true || 
+         error?.status === 403 && (
+           error?.message?.toLowerCase().includes('leaked') ||
+           error?.message?.toLowerCase().includes('invalid api key') ||
+           error?.message?.toLowerCase().includes('permission denied')
+         );
+}
+
 // Internal method - Get AI-generated problem idea
 async function _generateProblemIdea(systemUserId: number): Promise<{ domain: string; inspiration: string; category: string }> {
   const pool = getPool();
@@ -96,7 +106,11 @@ async function _generateProblemIdea(systemUserId: number): Promise<{ domain: str
           category: parsed.category || selectedProblem.category || 'General'
         };
       }
-    } catch (error) {
+    } catch (error: any) {
+      // If API key is invalid, throw to stop automation
+      if (_isInvalidApiKeyError(error)) {
+        throw error;
+      }
       console.warn('Failed to get AI inspiration, using fallback:', error);
     }
     
@@ -162,7 +176,11 @@ async function _generateProblemIdea(systemUserId: number): Promise<{ domain: str
         category: parsed.category
       };
     }
-  } catch (error) {
+  } catch (error: any) {
+    // If API key is invalid, throw to stop automation
+    if (_isInvalidApiKeyError(error)) {
+      throw error;
+    }
     console.warn('Failed to generate problem idea, using fallback:', error);
   }
   
@@ -297,14 +315,28 @@ function _formatAlgorithmData(data: any): any {
   };
 }
 
-// Main automation function - Generate daily algorithms
+// Internal method - Check if error is due to invalid API key
+function _isInvalidApiKeyError(error: any): boolean {
+  return error?.isInvalidApiKey === true || 
+         error?.status === 403 && (
+           error?.message?.toLowerCase().includes('leaked') ||
+           error?.message?.toLowerCase().includes('invalid api key') ||
+           error?.message?.toLowerCase().includes('permission denied')
+         );
+}
+
+// Main automation function - Generate algorithms (can be called hourly or daily)
 export async function generateDailyAlgorithms(): Promise<void> {
   try {
-    console.log('🤖 Starting daily algorithm generation...');
+    console.log('🤖 Starting algorithm generation...');
     
     const systemUserId = await _getSystemUser();
+    let invalidApiKeyDetected = false;
+    let successCount = 0;
+    let failureCount = 0;
     
-    // Generate algorithms per day - considering all types of problems
+    // Generate algorithms per run - considering all types of problems
+    // Note: This runs hourly by default, so adjust DAILY_ALGORITHMS_MIN/MAX if needed
     const numAlgorithms = Math.floor(Math.random() * (AUTOMATION_CONFIG.DAILY_ALGORITHMS_MAX - AUTOMATION_CONFIG.DAILY_ALGORITHMS_MIN + 1)) + AUTOMATION_CONFIG.DAILY_ALGORITHMS_MIN;
     
     for (let i = 0; i < numAlgorithms; i++) {
@@ -334,10 +366,30 @@ export async function generateDailyAlgorithms(): Promise<void> {
         );
         
         console.log(`✅ Generated algorithm: ${formattedData.name} (ID: ${algorithmId})`);
+        successCount++;
         
         // Small delay between generations
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (error: any) {
+        failureCount++;
+        
+        // Check if error is due to invalid API key
+        if (_isInvalidApiKeyError(error)) {
+          invalidApiKeyDetected = true;
+          console.error(`❌ Invalid API key detected: ${error.message}`);
+          console.error('⚠️  Stopping automation - API key needs to be updated');
+          await _logAutomationActivity(
+            'daily_generation',
+            'api_key_invalid',
+            { 
+              error: error.message, 
+              attempt: i + 1,
+              message: 'Automation stopped due to invalid API key. Please update your API key in settings.'
+            }
+          );
+          break; // Stop trying to generate more algorithms
+        }
+        
         console.error(`❌ Error generating algorithm ${i + 1}:`, error.message);
         await _logAutomationActivity(
           'daily_generation',
@@ -347,8 +399,19 @@ export async function generateDailyAlgorithms(): Promise<void> {
       }
     }
     
-    console.log('✅ Daily algorithm generation completed');
+    if (invalidApiKeyDetected) {
+      console.error('❌ Algorithm generation stopped due to invalid API key');
+      console.error('💡 Please update your Gemini API key in user settings or environment variables');
+    } else {
+      console.log(`✅ Algorithm generation completed (${successCount} successful, ${failureCount} failed)`);
+    }
   } catch (error: any) {
+    // Check if fatal error is due to invalid API key
+    if (_isInvalidApiKeyError(error)) {
+      console.error('❌ Fatal error: Invalid API key detected');
+      console.error('💡 Please update your Gemini API key in user settings or environment variables');
+      return; // Don't throw - gracefully exit
+    }
     console.error('❌ Fatal error in daily algorithm generation:', error);
     throw error;
   }
@@ -360,6 +423,7 @@ export async function autoSynthesizeAlgorithms(): Promise<void> {
     console.log('🔬 Starting auto-synthesis of algorithms...');
     
     const systemUserId = await _getSystemUser();
+    let invalidApiKeyDetected = false;
     
     // Get top performing algorithms
     const topAlgorithms = await _getTopAlgorithms(AUTOMATION_CONFIG.TOP_ALGORITHMS_FOR_SYNTHESIS);
@@ -417,6 +481,14 @@ export async function autoSynthesizeAlgorithms(): Promise<void> {
         // Small delay between syntheses
         await new Promise(resolve => setTimeout(resolve, 3000));
       } catch (error: any) {
+        // Check if error is due to invalid API key
+        if (_isInvalidApiKeyError(error)) {
+          invalidApiKeyDetected = true;
+          console.error(`❌ Invalid API key detected: ${error.message}`);
+          console.error('⚠️  Stopping automation - API key needs to be updated');
+          break; // Stop trying to synthesize more algorithms
+        }
+        
         console.error(`❌ Error synthesizing algorithm ${i + 1}:`, error.message);
         await _logAutomationActivity(
           'auto_synthesis',
@@ -426,8 +498,17 @@ export async function autoSynthesizeAlgorithms(): Promise<void> {
       }
     }
     
-    console.log('✅ Auto-synthesis completed');
+    if (invalidApiKeyDetected) {
+      console.error('❌ Auto-synthesis stopped due to invalid API key');
+    } else {
+      console.log('✅ Auto-synthesis completed');
+    }
   } catch (error: any) {
+    // Check if fatal error is due to invalid API key
+    if (_isInvalidApiKeyError(error)) {
+      console.error('❌ Fatal error: Invalid API key detected');
+      return; // Don't throw - gracefully exit
+    }
     console.error('❌ Fatal error in auto-synthesis:', error);
     throw error;
   }
@@ -439,6 +520,7 @@ export async function improveAlgorithms(): Promise<void> {
     console.log('🔧 Starting algorithm improvement process...');
     
     const systemUserId = await _getSystemUser();
+    let invalidApiKeyDetected = false;
     
     // Get algorithms that need analysis
     const unanalyzedAlgorithms = await _getUnanalyzedAlgorithms(AUTOMATION_CONFIG.UNANALYZED_ALGORITHMS_LIMIT);
@@ -482,6 +564,14 @@ export async function improveAlgorithms(): Promise<void> {
         // Small delay between analyses
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (error: any) {
+        // Check if error is due to invalid API key
+        if (_isInvalidApiKeyError(error)) {
+          invalidApiKeyDetected = true;
+          console.error(`❌ Invalid API key detected: ${error.message}`);
+          console.error('⚠️  Stopping automation - API key needs to be updated');
+          break; // Stop trying to analyze more algorithms
+        }
+        
         console.error(`❌ Error improving algorithm ${algorithm.id}:`, error.message);
         await _logAutomationActivity(
           'algorithm_improvement',
@@ -491,8 +581,17 @@ export async function improveAlgorithms(): Promise<void> {
       }
     }
     
-    console.log('✅ Algorithm improvement process completed');
+    if (invalidApiKeyDetected) {
+      console.error('❌ Algorithm improvement stopped due to invalid API key');
+    } else {
+      console.log('✅ Algorithm improvement process completed');
+    }
   } catch (error: any) {
+    // Check if fatal error is due to invalid API key
+    if (_isInvalidApiKeyError(error)) {
+      console.error('❌ Fatal error: Invalid API key detected');
+      return; // Don't throw - gracefully exit
+    }
     console.error('❌ Fatal error in algorithm improvement:', error);
     throw error;
   }
