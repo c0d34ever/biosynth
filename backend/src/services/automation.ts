@@ -315,16 +315,6 @@ function _formatAlgorithmData(data: any): any {
   };
 }
 
-// Internal method - Check if error is due to invalid API key
-function _isInvalidApiKeyError(error: any): boolean {
-  return error?.isInvalidApiKey === true || 
-         error?.status === 403 && (
-           error?.message?.toLowerCase().includes('leaked') ||
-           error?.message?.toLowerCase().includes('invalid api key') ||
-           error?.message?.toLowerCase().includes('permission denied')
-         );
-}
-
 // Main automation function - Generate algorithms (can be called hourly or daily)
 export async function generateDailyAlgorithms(): Promise<void> {
   try {
