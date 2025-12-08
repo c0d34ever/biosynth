@@ -1,6 +1,6 @@
 import { Type } from "@google/genai";
 import { getPool } from '../db/connection.js';
-import { getAIClient, extractErrorMessage, isInvalidApiKeyError } from './geminiService.js';
+import { getAIClient, getAIClientWithRotation, extractErrorMessage, isInvalidApiKeyError } from './geminiService.js';
 import { smartGenerateContent } from './geminiSmartService.js';
 
 // Default model - using gemini-2.5-flash for better free tier support
@@ -8,8 +8,13 @@ import { smartGenerateContent } from './geminiSmartService.js';
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const FALLBACK_MODEL = 'gemini-2.5-flash'; // Fast, good free tier limits
 
-// Adapter to get AI client (now async, accepts userId)
-const getAIClientAdapter = async (userId?: number) => {
+// Adapter to get AI client with rotation support
+const getAIClientAdapter = async (userId?: number, useRotation: boolean = true) => {
+  if (useRotation) {
+    // Use rotation wrapper - will try multiple keys automatically
+    // We'll handle rotation in the generateContentWithErrorHandling function
+    return await getAIClient(userId);
+  }
   return await getAIClient(userId);
 };
 
@@ -724,46 +729,47 @@ export const processGenerateJob = async (inputData: {
   inspiration: string;
   domain: string;
 }, userId?: number): Promise<any> => {
-  const ai = await getAIClientAdapter(userId);
-  
-  const prompt = `
-    Design a NOVEL, theoretical algorithm inspired by "${inputData.inspiration}" for the problem domain of "${inputData.domain}".
-    
-    The algorithm should not be a direct copy of an existing one (like standard Ant Colony Optimization or Neural Networks) but a creative variation or entirely new concept based on the specific biological or physical mechanics of the inspiration.
-    
-    Return the response in strict JSON format.
-  `;
+  // Use rotation to automatically try different API keys if one fails
+  return await getAIClientWithRotation(userId, async (ai) => {
+    const prompt = `
+      Design a NOVEL, theoretical algorithm inspired by "${inputData.inspiration}" for the problem domain of "${inputData.domain}".
+      
+      The algorithm should not be a direct copy of an existing one (like standard Ant Colony Optimization or Neural Networks) but a creative variation or entirely new concept based on the specific biological or physical mechanics of the inspiration.
+      
+      Return the response in strict JSON format.
+    `;
 
-  return generateContentWithErrorHandling(ai, {
-    contents: prompt,
-    responseMimeType: "application/json",
-    responseSchema: {
-      type: Type.OBJECT,
-      properties: {
-        name: { type: Type.STRING, description: "A creative, sci-fi sounding name for the algorithm" },
-        inspiration: { type: Type.STRING, description: "The specific biological/physical source" },
-        domain: { type: Type.STRING, description: "The problem domain addressed" },
-        description: { type: Type.STRING, description: "A concise summary of what the algorithm does" },
-        principle: { type: Type.STRING, description: "The core mechanism borrowed from nature" },
-        steps: { 
-          type: Type.ARRAY, 
-          items: { type: Type.STRING },
-          description: "Step-by-step logic flow of the algorithm"
+    return generateContentWithErrorHandling(ai, {
+      contents: prompt,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING, description: "A creative, sci-fi sounding name for the algorithm" },
+          inspiration: { type: Type.STRING, description: "The specific biological/physical source" },
+          domain: { type: Type.STRING, description: "The problem domain addressed" },
+          description: { type: Type.STRING, description: "A concise summary of what the algorithm does" },
+          principle: { type: Type.STRING, description: "The core mechanism borrowed from nature" },
+          steps: { 
+            type: Type.ARRAY, 
+            items: { type: Type.STRING },
+            description: "Step-by-step logic flow of the algorithm"
+          },
+          applications: { 
+            type: Type.ARRAY, 
+            items: { type: Type.STRING },
+            description: "Potential real-world use cases"
+          },
+          pseudoCode: { type: Type.STRING, description: "A code-like representation of the core logic loop" },
+          tags: { 
+            type: Type.ARRAY, 
+            items: { type: Type.STRING },
+            description: "Keywords (e.g., 'Optimization', 'Distributed', 'Chaos')"
+          }
         },
-        applications: { 
-          type: Type.ARRAY, 
-          items: { type: Type.STRING },
-          description: "Potential real-world use cases"
-        },
-        pseudoCode: { type: Type.STRING, description: "A code-like representation of the core logic loop" },
-        tags: { 
-          type: Type.ARRAY, 
-          items: { type: Type.STRING },
-          description: "Keywords (e.g., 'Optimization', 'Distributed', 'Chaos')"
-        }
-      },
-      required: ["name", "inspiration", "domain", "description", "principle", "steps", "applications", "pseudoCode", "tags"]
-    }
+        required: ["name", "inspiration", "domain", "description", "principle", "steps", "applications", "pseudoCode", "tags"]
+      }
+    });
   });
 };
 
@@ -771,23 +777,23 @@ export const processSynthesizeJob = async (inputData: {
   algorithms: any[];
   focus?: string;
 }, userId?: number): Promise<any> => {
-  const ai = await getAIClientAdapter(userId);
-
-  const algoSummaries = inputData.algorithms
-    .map(a => `${a.name} (Inspiration: ${a.inspiration}, Principle: ${a.principle})`)
-    .join("; ");
-  
-  const prompt = `
-    Act as a System Architect. Merge the following algorithms into a unified, sophisticated HYBRID system:
-    ${algoSummaries}
+  // Use rotation to automatically try different API keys if one fails
+  return await getAIClientWithRotation(userId, async (ai) => {
+    const algoSummaries = inputData.algorithms
+      .map(a => `${a.name} (Inspiration: ${a.inspiration}, Principle: ${a.principle})`)
+      .join("; ");
     
-    The goal is to create a meta-algorithm that leverages the strengths of each component to solve complex problems. 
-    ${inputData.focus ? `Focus specifically on: ${inputData.focus}` : ''}
-    
-    Create a new cohesive system identity. The logic should explain how the components interact.
-  `;
+    const prompt = `
+      Act as a System Architect. Merge the following algorithms into a unified, sophisticated HYBRID system:
+      ${algoSummaries}
+      
+      The goal is to create a meta-algorithm that leverages the strengths of each component to solve complex problems. 
+      ${inputData.focus ? `Focus specifically on: ${inputData.focus}` : ''}
+      
+      Create a new cohesive system identity. The logic should explain how the components interact.
+    `;
 
-  return generateContentWithErrorHandling(ai, {
+    return generateContentWithErrorHandling(ai, {
     contents: prompt,
     responseMimeType: "application/json",
     responseSchema: {
@@ -817,6 +823,7 @@ export const processSynthesizeJob = async (inputData: {
       },
       required: ["name", "inspiration", "domain", "description", "principle", "steps", "applications", "pseudoCode", "tags"]
     }
+    });
   });
 };
 

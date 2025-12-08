@@ -1,5 +1,5 @@
 import { Type } from "@google/genai";
-import { getAIClient } from './geminiService.js';
+import { getAIClient, getAIClientWithRotation } from './geminiService.js';
 
 // Helper function to sleep/delay
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -207,28 +207,25 @@ export const smartGeminiRequest = async <T = any>(
   console.log(`[SmartGemini] Contents preview: ${contents.substring(0, 200)}`);
   console.log(`[SmartGemini] ========================================`);
   
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`[SmartGemini] ========================================`);
-      console.log(`[SmartGemini] Attempt ${attempt + 1}/${maxRetries + 1}`);
-      console.log(`[SmartGemini] ========================================`);
-      
-      // Get AI client
-      console.log(`[SmartGemini] Getting AI client...`);
-      const ai = await getAIClient(); // No userId available in this context
-      console.log(`[SmartGemini] AI client obtained`);
-      
-      // Make request
-      console.log(`[SmartGemini] Calling ai.models.generateContent...`);
-      const response = await ai.models.generateContent({
-        model: model || 'gemini-2.5-flash',
-        contents,
-        config: {
-          responseMimeType,
-          ...(responseSchema && { responseSchema })
-        }
-      });
-      console.log(`[SmartGemini] Received response from Gemini API`);
+  // Use rotation to automatically try different API keys if one fails
+  return await getAIClientWithRotation(userId, async (ai) => {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[SmartGemini] ========================================`);
+        console.log(`[SmartGemini] Attempt ${attempt + 1}/${maxRetries + 1}`);
+        console.log(`[SmartGemini] ========================================`);
+        
+        // Make request
+        console.log(`[SmartGemini] Calling ai.models.generateContent...`);
+        const response = await ai.models.generateContent({
+          model: model || 'gemini-2.5-flash',
+          contents,
+          config: {
+            responseMimeType,
+            ...(responseSchema && { responseSchema })
+          }
+        });
+        console.log(`[SmartGemini] Received response from Gemini API`);
 
       if (!response.text) {
         throw new Error("No response text from Gemini API");
@@ -429,15 +426,16 @@ export const smartGeminiRequest = async <T = any>(
       // Otherwise, wait and retry
       await sleep(retryDelay * (attempt + 1));
     }
-  }
+    }
 
-  // Should never reach here, but just in case
-  return {
-    success: false,
-    error: lastError || 'Unknown error occurred',
-    retries: maxRetries,
-    rawResponse: rawResponse || undefined
-  };
+    // Should never reach here, but just in case
+    return {
+      success: false,
+      error: lastError || 'Unknown error occurred',
+      retries: maxRetries,
+      rawResponse: rawResponse || undefined
+    };
+  });
 };
 
 /**

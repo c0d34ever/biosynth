@@ -51,49 +51,197 @@ const getGlobalGeminiApiKey = async (): Promise<string | null> => {
 };
 
 /**
- * Standard client initialization with fallback mechanism:
- * 1. User's API key from database (if userId provided)
- * 2. Global API key from database settings
- * 3. GEMINI_API_KEY from environment variables
- * 4. Default API key (hardcoded fallback)
+ * Get all available API keys from all users (excluding specified userId)
  */
-export const getAIClient = async (userId?: number): Promise<GoogleGenAI> => {
-  // Try to get user's API key first
-  let apiKey: string | null = null;
-  let keySource = 'unknown';
+const getAllUserApiKeys = async (excludeUserId?: number): Promise<Array<{ userId: number | null; apiKey: string; source: string }>> => {
+  const keys: Array<{ userId: number | null; apiKey: string; source: string }> = [];
   
-  if (userId) {
-    apiKey = await getUserGeminiApiKey(userId);
-    if (apiKey) {
-      keySource = 'user';
+  try {
+    const pool = getPool();
+    const [users] = await pool.query(
+      `SELECT id, email, gemini_api_key FROM users 
+       WHERE gemini_api_key IS NOT NULL 
+       AND gemini_api_key != '' 
+       ${excludeUserId ? 'AND id != ?' : ''}
+       ORDER BY id ASC`,
+      excludeUserId ? [excludeUserId] : []
+    ) as any[];
+    
+    for (const user of users) {
+      if (user.gemini_api_key) {
+        keys.push({
+          userId: user.id,
+          apiKey: user.gemini_api_key,
+          source: `user_${user.id}`
+        });
+      }
+    }
+  } catch (error) {
+    console.error('[Gemini] Error fetching all user API keys:', error);
+  }
+  
+  return keys;
+};
+
+/**
+ * Get all available API keys in priority order for rotation
+ */
+const getAllAvailableApiKeys = async (preferredUserId?: number): Promise<Array<{ userId: number | null; apiKey: string; source: string }>> => {
+  const keys: Array<{ userId: number | null; apiKey: string; source: string }> = [];
+  
+  // 1. Preferred user's key (if provided)
+  if (preferredUserId) {
+    const userKey = await getUserGeminiApiKey(preferredUserId);
+    if (userKey) {
+      keys.push({ userId: preferredUserId, apiKey: userKey, source: `user_${preferredUserId}` });
     }
   }
   
-  // Fallback to global settings
-  if (!apiKey) {
-    apiKey = await getGlobalGeminiApiKey();
-    if (apiKey) {
-      keySource = 'global';
+  // 2. All other user keys
+  const otherUserKeys = await getAllUserApiKeys(preferredUserId);
+  keys.push(...otherUserKeys);
+  
+  // 3. Global key
+  const globalKey = await getGlobalGeminiApiKey();
+  if (globalKey) {
+    keys.push({ userId: null, apiKey: globalKey, source: 'global' });
+  }
+  
+  // 4. Environment variable key
+  const envKey = process.env.GEMINI_API_KEY || null;
+  if (envKey) {
+    keys.push({ userId: null, apiKey: envKey, source: 'environment' });
+  }
+  
+  // 5. Default key (last resort)
+  keys.push({ userId: null, apiKey: DEFAULT_GEMINI_API_KEY, source: 'default' });
+  
+  return keys;
+};
+
+// Track failed API keys to avoid retrying them immediately
+const failedApiKeys = new Set<string>();
+const FAILED_KEY_TTL = 60 * 60 * 1000; // 1 hour - keys are retried after this time
+const failedKeyTimestamps = new Map<string, number>();
+
+/**
+ * Check if an API key should be skipped (recently failed)
+ */
+const shouldSkipKey = (apiKey: string): boolean => {
+  if (!failedApiKeys.has(apiKey)) return false;
+  
+  const failedTime = failedKeyTimestamps.get(apiKey) || 0;
+  const now = Date.now();
+  
+  // If enough time has passed, allow retry
+  if (now - failedTime > FAILED_KEY_TTL) {
+    failedApiKeys.delete(apiKey);
+    failedKeyTimestamps.delete(apiKey);
+    return false;
+  }
+  
+  return true;
+};
+
+/**
+ * Mark an API key as failed
+ */
+const markKeyAsFailed = (apiKey: string): void => {
+  failedApiKeys.add(apiKey);
+  failedKeyTimestamps.set(apiKey, Date.now());
+  console.warn(`[Gemini] Marked API key as failed (will retry after ${FAILED_KEY_TTL / 1000 / 60} minutes)`);
+};
+
+/**
+ * Clear failed key status (when a key succeeds)
+ */
+const clearFailedKey = (apiKey: string): void => {
+  failedApiKeys.delete(apiKey);
+  failedKeyTimestamps.delete(apiKey);
+};
+
+/**
+ * Standard client initialization with API key rotation support:
+ * Tries multiple API keys in priority order, rotating to next key if current one fails
+ */
+export const getAIClient = async (userId?: number, excludeFailedKeys: string[] = []): Promise<GoogleGenAI> => {
+  // Get all available keys
+  const allKeys = await getAllAvailableApiKeys(userId);
+  
+  // Filter out excluded keys and recently failed keys
+  const availableKeys = allKeys.filter(keyInfo => {
+    if (excludeFailedKeys.includes(keyInfo.apiKey)) return false;
+    if (shouldSkipKey(keyInfo.apiKey)) return false;
+    return true;
+  });
+  
+  if (availableKeys.length === 0) {
+    // If all keys are excluded/failed, try the first one anyway
+    const firstKey = allKeys[0];
+    if (firstKey) {
+      console.log(`[Gemini] Using API key from: ${firstKey.source} (all other keys failed)`);
+      return new GoogleGenAI({ apiKey: firstKey.apiKey });
+    }
+    throw new Error('No API keys available');
+  }
+  
+  // Use the first available key
+  const selectedKey = availableKeys[0];
+  console.log(`[Gemini] Using API key from: ${selectedKey.source}`);
+  
+  return new GoogleGenAI({ apiKey: selectedKey.apiKey });
+};
+
+/**
+ * Get AI client with automatic key rotation on failure
+ * This function will try multiple keys until one works
+ */
+export const getAIClientWithRotation = async (
+  userId?: number,
+  operation: (client: GoogleGenAI) => Promise<any> = async () => { throw new Error('No operation provided'); }
+): Promise<any> => {
+  const allKeys = await getAllAvailableApiKeys(userId);
+  const triedKeys: string[] = [];
+  let lastError: any = null;
+  
+  for (const keyInfo of allKeys) {
+    // Skip if key was already tried or is in failed list
+    if (triedKeys.includes(keyInfo.apiKey) || shouldSkipKey(keyInfo.apiKey)) {
+      continue;
+    }
+    
+    try {
+      console.log(`[Gemini] Trying API key from: ${keyInfo.source}`);
+      const client = new GoogleGenAI({ apiKey: keyInfo.apiKey });
+      
+      // Try the operation with this client
+      const result = await operation(client);
+      
+      // If successful, clear any failed status for this key
+      clearFailedKey(keyInfo.apiKey);
+      console.log(`[Gemini] ✅ Successfully used API key from: ${keyInfo.source}`);
+      
+      return result;
+    } catch (error: any) {
+      triedKeys.push(keyInfo.apiKey);
+      lastError = error;
+      
+      // If it's an invalid API key error, mark it as failed and try next
+      if (isInvalidApiKeyError(error)) {
+        console.warn(`[Gemini] ⚠️  API key from ${keyInfo.source} is invalid/leaked, trying next key...`);
+        markKeyAsFailed(keyInfo.apiKey);
+        continue; // Try next key
+      }
+      
+      // For other errors (rate limits, etc.), still try next key
+      console.warn(`[Gemini] ⚠️  API key from ${keyInfo.source} failed: ${error.message}, trying next key...`);
+      continue;
     }
   }
   
-  // Fallback to environment variable
-  if (!apiKey) {
-    apiKey = process.env.GEMINI_API_KEY || null;
-    if (apiKey) {
-      keySource = 'environment';
-    }
-  }
-  
-  // Final fallback to default key
-  if (!apiKey) {
-    apiKey = DEFAULT_GEMINI_API_KEY;
-    keySource = 'default';
-  }
-  
-  console.log(`[Gemini] Using API key from: ${keySource}`);
-  
-  return new GoogleGenAI({ apiKey });
+  // All keys failed
+  console.error(`[Gemini] ❌ All ${allKeys.length} API keys failed`);
+  throw lastError || new Error('All API keys failed');
 };
 
 /**
